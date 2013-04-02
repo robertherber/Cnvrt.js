@@ -1,0 +1,416 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"con",
+				"convertFrom"
+			],
+			[
+				"num",
+				"number2"
+			],
+			[
+				"nu",
+				"number2"
+			],
+			[
+				"add",
+				"add"
+			],
+			[
+				"val",
+				"value"
+			],
+			[
+				"addUn",
+				"addUnits"
+			],
+			[
+				"Uni",
+				"Unit"
+			],
+			[
+				"attr",
+				"attributes"
+			],
+			[
+				"unit",
+				"unitType"
+			],
+			[
+				"n",
+				"number"
+			],
+			[
+				"number",
+				"numberLib"
+			],
+			[
+				"cur",
+				"curUnitColl"
+			],
+			[
+				"acc",
+				"accMultiplier"
+			],
+			[
+				"prot",
+				"prototype"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"contents": "var Cnvrt = Cnvrt || {};\n\n//formatCallback can be specified at Library level, overriden by unit level (attach as formatCallback property on unit), which in turn is overridden by formatCallback specified as input argument to the toString function\n\n//Todo:\n//Make val and unit private (module patternize, keep prototype for performance)\n//Fetch currencies from webservice (probably yahoo)\n//Create unit test suite\n//Make it use BigNumber or other lib if available\n//Derived types (m/s and so on): \n\n\n\nCnvrt = function (val, unit) {\n	var val = Cnvrt.ensureNumberType(val);\n	this.val = val;\n	this.unit = unit;\n}\n\nCnvrt._numberLib = BigNumber || BigDecimal;\n\nCnvrt.ensureNumberType = function(number){\n	return (!Cnvrt._numberLib || number instanceof Cnvrt._numberLib) ? \n		number : \n		new Cnvrt._numberLib(number);\n}\n\nCnvrt.addUnits = function(units, measure){\n	for(var unitName in units){\n		if(units.hasOwnProperty(unitName)){\n			Cnvrt.addUnit(unitName, measure, units[unitName])\n		}\n	}\n};\n\nCnvrt.addUnit = function (name, measure, attributes) {\n	if(!name || !measure || !(attributes.hasOwnProperty('value') || attributes.hasOwnProperty('isDefault') || (attributes.hasOwnProperty('convertTo') && attributes.hasOwnProperty('convertFrom'))))\n		throw \"Unit requires 'name', 'value' and 'type' to be specified\";\n\n	var unit = new Cnvrt.Unit(attributes);\n	unit.measure = measure;\n	unit.value = Cnvrt.ensureNumberType(unit.value);\n\n	Cnvrt[measure] = Cnvrt[measure] || {};\n	Cnvrt[measure][name] = unit;\n	return unit;\n}\n\nCnvrt.Unit = function(attributes) {\n	for(var attr in attributes){\n		if(attributes.hasOwnProperty(attr)){\n			this[attr] = attributes[attr];\n		}\n	}\n}\n\nCnvrt.Unit.prototype.init = function(value) {\n	return new Cnvrt(value, this);\n}\n\n\nCnvrt.formatCallback = null;\n\nCnvrt.prototype.toString = function(accuracy, formatCallback) {\n	var accMultiplier = (accuracy || accuracy === 0) ? Math.pow(10, accuracy) : 100;\n	var displayVal = (accMultiplier > 0) ? Math.floor(this.val * accMultiplier) / accMultiplier : this.val;\n	var formatCallback = (formatCallback) ? formatCallback : \n		(this.unit.formatCallback) ? this.unit.formatCallback :\n		Cnvrt.formatCallback;\n\n	if(formatCallback){\n		return formatCallback(this.val, this.unit);\n	}\n	else{\n		var prefix = (this.unit.prefix) ? this.unit.prefix : \"\";\n		var suffix = (this.unit.suffix) ? this.unit.suffix : \"\";\n		return prefix + displayVal + suffix;\n	}	\n};\n\nCnvrt.prototype.to = function(unit) {\n	this.assertCnvrt(unit);\n\n	if(unit === this.unit)\n		return this;\n\n	if(!this.unit.convertFrom && !unit.convertTo){\n		this.multiply(Cnvrt.divide(unit.value, this.unit.value));	\n	}\n	else{\n		if(this.unit.convertFrom){\n			this.val = this.unit.convertFrom(this.val);	\n		}\n		if(unit.convertTo){\n			this.val = unit.convertTo(this.val);\n		}\n	}\n	\n	this.unit = unit;\n	return this;\n};\n\nCnvrt.prototype.toNumber = function() {\n	return this.val * 1;\n};\n\nCnvrt.add = function(number1, number2) {\n	number1 = Cnvrt.ensureNumberType(number1);\n	number2 = Cnvrt.ensureNumberType(number2);\n\n	return (Cnvrt._numberLib) ?\n		number1.add(number2) : \n		number1 + number2;\n}\n\nCnvrt.subtract = function(number1, number2) {\n	number1 = Cnvrt.ensureNumberType(number1);\n	number2 = Cnvrt.ensureNumberType(number2);\n\n	return (Cnvrt._numberLib) ?\n		number1.subtract(number2) : \n		number1 - number2;\n}\n\nCnvrt.multiply = function(number1, number2) {\n	number1 = Cnvrt.ensureNumberType(number1);\n	number2 = Cnvrt.ensureNumberType(number2);\n\n	return (Cnvrt._numberLib) ?\n		number1.multiply(number2) : \n		number1 * number2;\n}\n\nCnvrt.divide = function(number1, number2) {\n	number1 = Cnvrt.ensureNumberType(number1);\n	number2 = Cnvrt.ensureNumberType(number2);\n\n	return (Cnvrt._numberLib) ?\n		number1.divide(number2) : \n		number1 / number2;\n}\n\nCnvrt.mod = function(number1, number2) {\n	number1 = Cnvrt.ensureNumberType(number1);\n	number2 = Cnvrt.ensureNumberType(number2);\n\n	return (Cnvrt._numberLib) ?\n		number1.mod(number2) : \n		number1 % number2;\n}\n\nCnvrt.prototype.plus =\nCnvrt.prototype.add = function(number) {\n	this.val = Cnvrt.add(this.val, number);\n\n	return this;\n};\n\nCnvrt.prototype.minus = \nCnvrt.prototype.subtract = function(number) {\n	this.val = Cnvrt.subtract(this.val, number)\n	\n	return this;\n};\n\nCnvrt.prototype.times = \nCnvrt.prototype.multiply = function(number) {\n	this.val = Cnvrt.multiply(this.val, number);\n\n	return this;\n};\n\nCnvrt.prototype.divide = function(number) {\n	this.val = Cnvrt.divide(this.val, number)\n\n	return this;\n};\n\nCnvrt.prototype.mod = function(number) {\n	this.val = Cnvrt.mod(this.val, number);\n\n	return this;\n};\n\nCnvrt.prototype.assertCnvrt = function(unit) {\n	if(unit.measure !== this.unit.measure)\n		throw \"Attempted calculation with mixed measures '\" + unit.measure + \"' and '\" + this.unit.measure + \"'\"\n}\n\n//Equal in value\nCnvrt.prototype.isEqual = function(convertible) {\n	this.assertCnvrt(convertible.unit);\n	var number = convertible.to(this.unit).toNumber();\n	return this.toNumber() === number;\n};\n\n//Equal in type and value \nCnvrt.prototype.isEqualAbs = function(convertible) {\n	this.assertCnvrt(convertible.unit);\n	return \n		this.unit === Cnvrtable.unit && \n		this.toNumber() === Cnvrtable.toNumber();\n};\n\nCnvrt.prototype.isMoreThan = function(convertible) {\n	this.assertCnvrt(convertible.unit);\n	var number = convertible.to(this.unit).toNumber();\n	return this.toNumber() > number;\n};\n\nCnvrt.prototype.isLessThan = function(convertible) {\n	this.assertCnvrt(convertible.unit);\n	var number = convertible.to(this.unit).toNumber();\n	return this.toNumber() < number;\n};\n\nCnvrt.prototype.clone = function() {\n	return new Cnvrt(this.val, this.unit);\n};\n\n//This should make the equals operator able to compare objects across types..?\nCnvrt.prototype.valueOf = function() {\n	return this.divide(this.unit.value);\n};",
+			"file": "app.js",
+			"file_size": 5723,
+			"file_write_time": 130092565530000000,
+			"settings":
+			{
+				"buffer_size": 5757,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "config.js",
+			"settings":
+			{
+				"buffer_size": 1763,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "test.js",
+			"settings":
+			{
+				"buffer_size": 427,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "bigdecimal.js",
+			"settings":
+			{
+				"buffer_size": 111756,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "index.html",
+			"settings":
+			{
+				"buffer_size": 381,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"html",
+				"Set Syntax: HTML"
+			],
+			[
+				"javasc",
+				"Set Syntax: JavaScript"
+			]
+		],
+		"width": 467.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+			"Convertible",
+			"Convert",
+			"numberLib",
+			"units",
+			"Unit",
+			"Convert"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"Cnvrt",
+			"_numberLib",
+			"Units",
+			"Convertible",
+			"Unit"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "app.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5757,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								5153,
+								5153
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 2765.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "config.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1763,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								491,
+								491
+							]
+						],
+						"settings":
+						{
+							"auto_name": "",
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "test.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 427,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								421,
+								421
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "bigdecimal.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 111756,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								958,
+								958
+							]
+						],
+						"settings":
+						{
+							"auto_name": "",
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 3.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "index.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 381,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								266,
+								266
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"project": "ConvertJS.sublime-project",
+	"replace":
+	{
+		"height": 64.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
