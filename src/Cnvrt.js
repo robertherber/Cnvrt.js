@@ -91,6 +91,55 @@ Cnvrt = (function() {
 			number1 / number2;
 	}
 
+	var multiplyDerived = function(convertable1, convertable2) {
+		var number1 = convertable1.getValue(),
+			number2 = convertable2.getValue(),
+			unit1 = convertable1.getUnit(),
+			unit2 = convertable2.getUnit();
+
+		var newValue = multiply(number1, number2);
+
+		var newUnitSuffix = (unit1.unitName === unit2.unitName) ? 
+			unit1.suffix + "^2" : 
+			unit1.suffix + '*' + unit2.suffix;
+		var newUnitMeasure = unit1.measure + 'Times' + unit2.measure;
+		var newUnitName = unit1.unitName + "Times" + unit2.unitName;
+		var newUnitValue = multiply(unit1.value, unit2.value);
+
+		var newUnit = Cnvrt[newUnitMeasure][newUnitName] || 
+			Unit(newUnitMeasure, newUnitName, 
+				{ 
+					suffix: newUnitSuffix, 
+					value: newUnitValue
+				});
+
+		return Cnvrt(newValue, newUnit);
+	}
+
+	var divideDerived = function(convertable1, convertable2) {
+		var number1 = convertable1.getValue(),
+			number2 = convertable2.getValue(),
+			unit1 = convertable1.getUnit(),
+			unit2 = convertable2.getUnit();
+
+		var newValue = divide(number1, number2);
+
+		var newUnitMeasure = unit1.measure + 'Over' + unit2.measure;
+		var newUnitName = unit1.unitName + "Over" + unit2.unitName;
+		var newUnitSuffix = unit1.suffix + '/' + unit2.suffix;
+		
+		var newUnitValue = divide(unit1.value, unit2.value);
+
+		var newUnit = 
+			Unit(newUnitMeasure, newUnitName,
+				{
+					suffix: newUnitSuffix,
+					value: newUnitValue
+				});
+
+		return Cnvrt(newValue, newUnit);
+	}
+
 	var mod = function(number1, number2) {
 		number1 = _ensureNumberType(number1);
 		number2 = _ensureNumberType(number2);
@@ -248,24 +297,17 @@ Cnvrt = (function() {
 				return this;
 			},
 			multiply: function(numberOrConvertable) {
-				//Experimenting with derived units..
-				/*if(numberOrConvertable instanceof Object && !(numberOrConvertable instanceof _numberLib)){
-					var convertable = numberOrConvertable;
-					var newValue = multiply(_val, convertable.valueOf());
-					var otherUnit = convertable.getUnit();
-
-					var newUnitSuffix = (_unit.unitName === otherUnit.unitName) ? _unit.suffix + "^2" : _unit.suffix + '*' + otherUnit.suffix;
-
-					var newUnit = Cnvrt[_unit.unitName + "Times" + otherUnit.unitName] || Unit(_unit.measure + 'Times' + otherUnit.measure, _unit.unitName + "Times" + otherUnit.unitName, { suffix: newUnitSuffix, value: _unit.value * otherUnit.value });
-
-					return Cnvrt(newValue, newUnit);
-				}
+				/*if(numberOrConvertable instanceof Object && !(numberOrConvertable instanceof _numberLib))
+					return multiplyDerived(this, numberOrConvertable);
 				else*/
-				_val = multiply(_val, numberOrConvertable);
+					_val = multiply(_val, numberOrConvertable);
 				return this;
 			},
 			divide: function(numberOrConvertable) {
-				_val = divide(_val, numberOrConvertable);
+				/*if(numberOrConvertable instanceof Object && !(numberOrConvertable instanceof _numberLib) && numberOrConvertable.getUnit().measure !== _unit.measure)
+					return divideDerived(this, numberOrConvertable);
+				else*/
+					_val = divide(_val, numberOrConvertable);
 				return this;
 			},
 			mod: function(numberOrConvertable) {

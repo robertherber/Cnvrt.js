@@ -14,17 +14,45 @@ var config = {
 		}
 	},
 	Weight : {
-		Tonne:{
+		MetricGigatonne:{
+			value: 0.000000000001,
+			suffix: 'Gt'
+		},
+		MetricMegatonne:{
+			value: 0.000000001,
+			suffix: 'Mt'
+		},
+		MetricKilotonne:{
+			value: 0.000001,
+			suffix: 'kt'
+		},
+		MetricTonne:{
 			value: 0.001,
-			suffix: ' tonne'
+			suffix: 't'
 		},
 		Kilogram: {
 			value: 1,
 			suffix: 'kg'
 		},
+		Hectogram: {
+			value: 10,
+			suffix: 'hg'
+		},
+		Decagram: {
+			value: 100,
+			suffix: 'dag'
+		},
 		Gram : {
 			value: 1000,
 			suffix: 'g'
+		},
+		Decigram: {
+			value: 10000,
+			suffix: 'dg'
+		},
+		Centigram: {
+			value: 100000,
+			suffix: 'cg'
 		},
 		Milligram: {
 			value: 1000000,
@@ -34,8 +62,16 @@ var config = {
 			value: 1000000000,
 			suffix: 'µg'
 		},
+		Nanogram: {
+			value: 1000000000000,
+			suffix: 'ng'
+		},
+		Quarter: {
+			value: 12.70058636,
+			suffix: 'qtr'
+		},
 		Ounce: {
-			value: 35.2739619,
+			value: 35.27396194,
 			suffix: 'oz'
 		},
 		Pound: {
@@ -58,6 +94,30 @@ var config = {
 		}
 	},
 	Time:{
+		Millenium: {
+			value: 1000000,
+			suffix: 'millenia'
+		},
+		Century: {
+			value: 100000,
+			suffix: 'c.'
+		},
+		Decade: {
+			value: 10000,
+			suffix: 'decade'
+		},
+		Year: {
+			value: 8766,
+			suffix: 'a'
+		},
+		Week: {
+			value: 168,
+			suffix: 'w'
+		},
+		Day: {
+			value: 24,
+			suffix: 'd'
+		},
 		Hour: {
 			value: 1,
 			suffix: 'h'
@@ -72,12 +132,21 @@ var config = {
 		},
 		Millisecond: {
 			value: 3600000,
+			suffix: 'ms'
+		},
+		Microsecond: {
+			value: 3600000000,
+			suffix: 'µs'
+		},
+		Nanosecond: {
+			value: 3600000000000,
+			suffix: 'ns'
 		}
 	},
 	ElectricCurrent: {
 		Ampere: {
 			value: 1,
-			suffix: 'A'
+			suffix: 'amp'
 		}
 	},
 	Temp: {
@@ -94,6 +163,17 @@ var config = {
 		},
 		Kelvin: {
 			isDefault: true
+		},
+		Rankine: {
+			convertFrom: function(value)
+			{
+				return Cnvrt.divide(Cnvrt.multiply(value, 5), 9);
+			},
+			convertTo: function(value)
+			{
+				return Cnvrt.divide(Cnvrt.multiply(value, 9), 5);
+			},
+			suffix: "°R"
 		},
 		Fahrenheit: {
 			convertFrom: function(value)
@@ -117,9 +197,38 @@ var config = {
 			suffix: "dm²"
 		}
 	},
-	Substance:{
-		mole:{
-			value: 1
+	Volume:{
+		Liter: {
+			value: 1,
+			suffix: 'l'
+		},
+		USFluidOunce: {
+			value: 33.8140227,
+			suffix: 'oz'
+		},
+		USPint: {
+			value: 2.11337642,
+			suffix: 'pt'
+		},
+		ImperialPint:{
+			value: 1.75975326,
+			suffix: 'pt'
+		},
+		ImperialFluidOunce:{
+			value: 35.1950652,
+			suffix: 'oz'
+		},
+		Quartz: {
+			value: 1.05668821,
+			suffix: 'qt'
+		},
+		USGallon: {
+			value: 0.264172052,
+			suffix: 'gal'
+		},
+		ImperialGallon:{
+			value: 0.219969157,
+			suffix: 'gal'
 		}
 	},
 	LuminousIntensity:{
