@@ -1,6 +1,8 @@
 Cnvrt.js
 =========
 
+Now available in the NPM Registry for all ye Node coders!
+
 Library for easily converting between units and currencies.
 
 Example:

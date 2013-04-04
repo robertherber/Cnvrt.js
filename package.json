@@ -1,8 +1,7 @@
-//https://npmjs.org/doc/json.html
-
 {
-	"name": "Cnvrt",
-	"version": "0.1",
+	"name": "cnvrt",
+	"version": "0.0.1",
+	"description":"Library for easily converting between units and currencies.",
 	"homepage": "https://github.com/herber88/Cnvrt.js",
 	"bugs": { 
 		"url" : "https://github.com/herber88/Cnvrt.js/issues"
@@ -18,7 +17,8 @@
 		"type" : "git",
 	  	"url" : "https://github.com/herber88/Cnvrt.js.git"
 	},
-	"dependencies" : {
-		
-	} 
+	"optionalDependencies" : {
+		"bignumber-js":"*"
+	},
+	"main": "./bin/Cnvrt.js"
 }
