@@ -1,4 +1,4 @@
-var units = {
+var config = {
 	Currency : {
 		SEK: {
 			value: 6.8,
@@ -129,8 +129,4 @@ var units = {
 	}
 }
 
-for(var measure in units){
-	if(units.hasOwnProperty(measure)){
-		Cnvrt.addUnits(units[measure], measure);
-	}
-}
+Cnvrt.addUnits(config);
