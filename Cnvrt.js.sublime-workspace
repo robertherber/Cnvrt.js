@@ -371,7 +371,7 @@
 		]
 	},
 	"menu_visible": true,
-	"project": "ConvertJS.sublime-project",
+	"project": "Cnvrt.js.sublime-project",
 	"replace":
 	{
 		"height": 64.0
