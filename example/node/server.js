@@ -1,4 +1,4 @@
-var Cnvrt = require("../../bin/Cnvrt.js"),
+var Cnvrt = require("../../src/CnvrtDefaultConfig.js"),
 	BigNumber = require("bignumber.js");
 
 Cnvrt.setNumberLib(BigNumber);
@@ -23,6 +23,8 @@ function CelsiusToFahrenheit (amount) {
 	console.log("You quickly realize that's about " + fahrenheit.toString() + ", damn hot isn't it!");
 }
 
-
-UsDollarToSwedishKrona(5);
 CelsiusToFahrenheit(45);
+
+Cnvrt.Currency.bind('updated', function(){ 
+	UsDollarToSwedishKrona(5); 
+});

@@ -1,22 +1,28 @@
-var Cnvrt = Cnvrt || {};
-
 //formatCallback can be specified at Library level, overriden by unit level (attach as formatCallback property on unit), which in turn is overridden by formatCallback specified as input argument to the toString function
 
-//Todo:
-//Make val and unit private (module patternize, keep prototype for performance)
-//Fetch currencies from webservice (probably yahoo)
-//Derived types (m/s and so on): 
+var MicroEvent = MicroEvent || null,
+	BigNumber = BigNumber || null;
 
 Cnvrt = (function() {
 	//private
 
-	var _numberLib = (typeof BigNumber !== 'undefined') ? BigNumber : null,
+	var	_nodeMode = (typeof module !== 'undefined'),
+		_numberLib = (BigNumber) ? BigNumber : (_nodeMode) ? require('bignumber.js') : null,
 		_formatCallback = null;
 
 	var _ensureNumberType = function(number){
-		return (!_numberLib || _numberLib === null || (number instanceof _numberLib.constructor)) ? 
-			number : 
-			new _numberLib(number);
+		var retNumber;
+
+		if(_numberLib){
+			return (number instanceof _numberLib.constructor) ? 
+				number : 
+				_numberLib(number);
+		}
+		else{
+			return (typeof number === "number") ?
+				number :
+				parseFloat(number)
+		}
 	}
 
 	var _assertUnit = function(unit1, unit2) {
@@ -30,15 +36,19 @@ Cnvrt = (function() {
 		_numberLib = library;
 	};
 
-	var addUnits = function(config){
+	var loadConfig = function(config, preserve){
+		if(!preserve){
+			for(var prop in this){
+				if(this.hasOwnProperty(prop) && (this[prop] instanceof Unit || this[prop] instanceof Measure)){
+					delete this[prop];
+				}
+			}
+		}
+
 		for(var measure in config){
 			if(config.hasOwnProperty(measure)){
-				var units = config[measure];
-				for(var unitName in units){
-					if(units.hasOwnProperty(unitName)){
-						addUnit(unitName, measure, units[unitName])
-					}
-				}
+				var props = config[measure];
+				_ensureMeasure(measure, props);
 			}
 		}
 	};
@@ -49,10 +59,114 @@ Cnvrt = (function() {
 
 		var unit = Unit(measure, name, attributes);
 
-		Cnvrt[measure] = Cnvrt[measure] || {};
-		Cnvrt[measure][name] = unit;
+		_ensureMeasure(measure);
 		Cnvrt[name] = unit;
+		if(Cnvrt[measure])
+			Cnvrt[measure][name] = unit;
 		return unit;
+	}
+
+	var _ensureMeasure = function(measureName, props){
+		if(!Cnvrt[measureName])
+			Cnvrt[measureName] = new Measure(measureName, props);
+	}
+
+	var Measure = function(measureName, props){
+		for(var prop in props){
+			if(props.hasOwnProperty(prop)){
+				if(prop === 'update' && typeof props[prop] === "function"){
+					this.updateFunction = props[prop];
+				}
+				else if(prop === 'updateInterval' && isFinite(props[prop])){
+					this.updateInterval = parseInt(props[prop]);
+				}
+				else{
+					this[prop] = addUnit(prop, measureName, props[prop]);
+				}
+			}
+		}
+		if(this.updateFunction){
+			this.updateFunction();
+			setInterval(function(){
+				this.updateFunction();
+			}, this.updateInterval * 1000);
+		}
+	}
+
+	if(_nodeMode){
+		MicroEvent = require('microevent');
+	}
+
+	if(typeof MicroEvent !== 'undefined')
+		MicroEvent.mixin(Measure);
+	else
+		console.log("Missing MicroEvent, events will not trigger");
+
+	var _currencyCallback = function(data){
+		var currencies = (data instanceof Object) ? data.list.resources : JSON.parse(data).list.resources,
+			latestDataTS = 0;
+
+		for(var cur in currencies){
+			if(currencies.hasOwnProperty(cur) && currencies[cur].resource){
+				var currency = currencies[cur].resource.fields;
+				if(currency && currency.name && currency.name.indexOf('USD/') !== -1){
+					var name = currency.name.replace('USD/', ''),
+						value = currency.price,
+						timestamp = currency.ts;
+
+					latestDataTS = Math.max(latestDataTS, parseInt(timestamp));
+
+					if(Cnvrt[name] && Cnvrt[name].value !== value){
+						Cnvrt[name].value = _ensureNumberType(value);
+						Cnvrt[name].updated = new Date(timestamp);
+					}
+					else{
+						addUnit(name, "Currency", {
+							value: value,
+							suffix: name,
+							updated: new Date(timestamp)
+						});	
+					}
+				}
+			}
+		}
+
+		if(!Cnvrt["USD"])
+			addUnit("USD", "Currency", { 
+				value: 1,
+				prefix: '$'
+			});
+
+		Cnvrt.Currency.updated = new Date(latestDataTS * 1000);
+		Cnvrt.Currency.fetched = new Date();
+
+		if(Cnvrt.Currency.trigger)
+			Cnvrt.Currency.trigger('updated');
+	}
+
+	var fetchCurrencies = function(){
+		var uri = "http://finance.yahoo.com/webservice/v1/symbols/allcurrencies/quote?format=json";
+
+		if(typeof require !== 'undefined'){
+			var request = require('request');
+
+			request(uri, function(error, response, body){
+				if(!error && response.statusCode === 200){
+					_currencyCallback(body);
+				}
+				else{
+					console.log("Error: " + error);
+				}
+			});
+		}
+		else
+		{
+			//JSONP request
+			var script = document.createElement('script');
+			script.src = uri + "&callback=Cnvrt._currencyCallback";
+
+			document.getElementsByTagName('head')[0].appendChild(script);
+		}
 	}
 
 	var add = function(number1, number2) {
@@ -341,8 +455,11 @@ Cnvrt = (function() {
 	exports.divide = divide;
 	exports.multiply = multiply;
 	exports.mod = mod;
-	exports.addUnits = addUnits;
+	exports.loadConfig = loadConfig;
+	exports.addUnit = addUnit;
 	exports.setNumberLib = setNumberLib;
+	exports.fetchCurrencies = fetchCurrencies;
+	exports._currencyCallback = _currencyCallback;
 
 	return exports;
 })();
